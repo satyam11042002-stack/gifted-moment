@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      surprise_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          sort_order: number
+          surprise_id: string
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          surprise_id: string
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort_order?: number
+          surprise_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surprise_photos_surprise_id_fkey"
+            columns: ["surprise_id"]
+            isOneToOne: false
+            referencedRelation: "surprises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surprises: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_published: boolean
+          message: string
+          music_url: string | null
+          occasion: string
+          opened_at: string | null
+          owner_id: string
+          recipient_name: string
+          slug: string
+          theme: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_published?: boolean
+          message?: string
+          music_url?: string | null
+          occasion?: string
+          opened_at?: string | null
+          owner_id: string
+          recipient_name?: string
+          slug: string
+          theme?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_published?: boolean
+          message?: string
+          music_url?: string | null
+          occasion?: string
+          opened_at?: string | null
+          owner_id?: string
+          recipient_name?: string
+          slug?: string
+          theme?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
