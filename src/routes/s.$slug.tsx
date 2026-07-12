@@ -106,7 +106,7 @@ function SurprisePage() {
         <section className="px-6 py-24 max-w-5xl mx-auto">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary mb-8 text-center">Moments</p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {s.surprise_photos.map((p, i) => (
+            {s.surprise_photos.map((p: { url: string; caption: string | null }, i: number) => (
               <motion.div key={i}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ duration: 0.6, delay: i * 0.05 }}
