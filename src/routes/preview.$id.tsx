@@ -6,8 +6,9 @@ import { getMySurprise, publishSurprise, deleteSurprise } from "@/lib/surprises.
 import { SiteNav } from "@/components/momently/SiteNav";
 import { SurprisePreviewCard } from "@/components/momently/SurprisePreviewCard";
 import { CountdownInline } from "@/components/momently/CountdownRing";
+import { ShareCard } from "@/components/momently/ShareCard";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/preview/$id")({
   head: () => ({ meta: [{ title: "Preview — Momently" }, { name: "robots", content: "noindex" }] }),
@@ -74,6 +75,7 @@ function Preview() {
             recipient_name={surprise.recipient_name}
             cover_image_url={surprise.cover_image_url}
             expires_at={surprise.expires_at}
+            themeId={surprise.theme}
           />
         </div>
         <div>
@@ -84,24 +86,23 @@ function Preview() {
             {surprise.title || `For ${surprise.recipient_name || "someone special"}`}
           </h1>
 
-          <div className="p-5 rounded-2xl border border-border bg-card mb-6">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Share link</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 truncate text-sm font-mono">{publicUrl}</code>
-              <button onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copied"); }}
-                className="p-2 rounded-lg hover:bg-accent"><Copy className="size-4" /></button>
-              <a href={publicUrl} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-accent">
-                <ExternalLink className="size-4" />
-              </a>
-            </div>
-            {surprise.is_published && surprise.expires_at && (
-              <p className="mt-3 text-xs text-muted-foreground font-mono">
-                Expires in <CountdownInline expiresAt={surprise.expires_at} />
+          {surprise.is_published ? (
+            <ShareCard url={publicUrl} recipientName={surprise.recipient_name} />
+          ) : (
+            <div className="p-5 rounded-2xl border border-dashed border-border bg-card mb-6">
+              <p className="text-sm text-muted-foreground">
+                Publish to generate a shareable link and QR code.
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="flex gap-3 flex-wrap">
+          {surprise.is_published && surprise.expires_at && (
+            <p className="mt-4 text-xs text-muted-foreground font-mono">
+              Expires in <CountdownInline expiresAt={surprise.expires_at} />
+            </p>
+          )}
+
+          <div className="flex gap-3 flex-wrap mt-6">
             {!surprise.is_published && (
               <button onClick={handlePublish}
                 className="px-6 py-3 rounded-full bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20">
@@ -109,6 +110,9 @@ function Preview() {
               </button>
             )}
             <Link to="/dashboard" className="px-6 py-3 rounded-full border border-border font-medium">Dashboard</Link>
+            <a href={publicUrl} target="_blank" rel="noreferrer" className="px-6 py-3 rounded-full border border-border font-medium">
+              View live
+            </a>
             <button onClick={handleDelete}
               className="ml-auto px-4 py-3 rounded-full border border-border text-destructive hover:bg-destructive/10 flex items-center gap-2">
               <Trash2 className="size-4" /> Delete

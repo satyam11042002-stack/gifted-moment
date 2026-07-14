@@ -17,7 +17,7 @@ export const getSurpriseBySlug = createServerFn({ method: "GET" })
     const supabase = publicClient();
     const { data: s, error } = await supabase
       .from("surprises")
-      .select("id, slug, occasion, recipient_name, title, message, theme, cover_image_url, music_url, expires_at, is_published, surprise_photos(url, caption, sort_order)")
+      .select("id, owner_id, slug, occasion, recipient_name, title, message, theme, cover_image_url, music_url, expires_at, is_published, surprise_photos(url, caption, sort_order)")
       .eq("slug", data.slug)
       .eq("is_published", true)
       .maybeSingle();
