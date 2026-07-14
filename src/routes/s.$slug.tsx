@@ -1,9 +1,12 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getSurpriseBySlug } from "@/lib/surprises-public.functions";
 import { RevealEnvelope } from "@/components/momently/RevealEnvelope";
 import { CountdownRing } from "@/components/momently/CountdownRing";
+import { ThemedShell } from "@/components/momently/ThemedShell";
+import { Guestbook } from "@/components/momently/Guestbook";
 import { occasionGreeting, occasionLabel } from "@/lib/momently";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/s/$slug")({
@@ -46,30 +49,51 @@ export const Route = createFileRoute("/s/$slug")({
 function SurprisePage() {
   const s = Route.useLoaderData();
   const [opened, setOpened] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const expired = s.expires_at ? new Date(s.expires_at).getTime() <= Date.now() : false;
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.id && data.user.id === s.owner_id) setIsOwner(true);
+    });
+  }, [s.owner_id]);
 
   if (expired) {
     return (
-      <div className="min-h-screen grid place-items-center px-6 bg-background text-center">
-        <div className="max-w-md">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary mb-6">Faded</p>
-          <h1 className="font-display italic text-5xl mb-4">This moment has passed.</h1>
-          <p className="text-muted-foreground">The 48-hour window has closed. The memory remains.</p>
+      <ThemedShell themeId={s.theme}>
+        <div className="min-h-screen grid place-items-center px-6 text-center">
+          <div className="max-w-md">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary mb-6">Faded</p>
+            <h1 className="font-display italic text-5xl mb-4">This moment has passed.</h1>
+            <p className="text-muted-foreground">The 48-hour window has closed. The memory remains.</p>
+          </div>
         </div>
-      </div>
+      </ThemedShell>
     );
   }
 
-  if (!opened) return <RevealEnvelope onOpen={() => setOpened(true)} recipientName={s.recipient_name} />;
+  if (!opened) {
+    return (
+      <ThemedShell themeId={s.theme}>
+        <RevealEnvelope onOpen={() => setOpened(true)} recipientName={s.recipient_name} />
+      </ThemedShell>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <ThemedShell themeId={s.theme}>
       {/* Hero */}
       <section className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-24 text-center overflow-hidden">
         {s.cover_image_url && (
           <div className="absolute inset-0 opacity-30">
-            <img src={s.cover_image_url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background" />
+            <img
+              src={s.cover_image_url}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, var(--background) 0%, transparent 40%, var(--background) 100%)", opacity: 0.7 }} />
           </div>
         )}
         <motion.div
@@ -80,7 +104,7 @@ function SurprisePage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary mb-6">
             {occasionLabel(s.occasion)} · {occasionGreeting(s.occasion)}
           </p>
-          <h1 className="font-display italic text-6xl md:text-8xl leading-[0.9] mb-8">
+          <h1 className="font-display italic text-6xl md:text-8xl leading-[0.9] mb-8" style={{ fontFamily: "var(--font-display)" }}>
             {s.recipient_name || "You"}
           </h1>
           {s.title && <p className="text-xl text-muted-foreground max-w-xl mx-auto text-pretty">{s.title}</p>}
@@ -95,7 +119,7 @@ function SurprisePage() {
           className="px-6 py-24 max-w-2xl mx-auto"
         >
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary mb-8 text-center">A letter</p>
-          <p className="font-display italic text-2xl md:text-3xl leading-relaxed whitespace-pre-wrap text-center text-balance">
+          <p className="font-display italic text-2xl md:text-3xl leading-relaxed whitespace-pre-wrap text-center text-balance" style={{ fontFamily: "var(--font-display)" }}>
             {s.message}
           </p>
         </motion.section>
@@ -109,20 +133,29 @@ function SurprisePage() {
             {s.surprise_photos.map((p: { url: string; caption: string | null }, i: number) => (
               <motion.div key={i}
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ duration: 0.6, delay: i * 0.05 }}
+                viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.6, delay: (i % 6) * 0.05 }}
                 className="aspect-[4/5] rounded-2xl overflow-hidden bg-accent"
               >
-                <img src={p.url} alt={p.caption ?? ""} className="w-full h-full object-cover" />
+                <img
+                  src={p.url}
+                  alt={p.caption ?? ""}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
               </motion.div>
             ))}
           </div>
         </section>
       )}
 
+      {/* Guestbook */}
+      <Guestbook surpriseId={s.id} isOwner={isOwner} />
+
       {/* Countdown */}
-      <section className="px-6 py-24 md:py-32 bg-foreground text-background">
+      <section className="px-6 py-24 md:py-32" style={{ background: "var(--foreground)", color: "var(--background)" }}>
         <div className="max-w-md mx-auto text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary mb-8">
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] mb-8" style={{ color: "var(--primary)" }}>
             This page will fade
           </p>
           <div className="flex justify-center mb-6">
@@ -139,6 +172,6 @@ function SurprisePage() {
           Made with Momently
         </a>
       </footer>
-    </div>
+    </ThemedShell>
   );
 }

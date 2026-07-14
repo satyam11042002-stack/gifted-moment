@@ -6,6 +6,7 @@ import { upsertSurprise, publishSurprise } from "@/lib/surprises.functions";
 import { OCCASIONS, type OccasionId } from "@/lib/momently";
 import { SurprisePreviewCard } from "@/components/momently/SurprisePreviewCard";
 import { SiteNav } from "@/components/momently/SiteNav";
+import { ThemePicker } from "@/components/momently/ThemePicker";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/create")({
@@ -18,6 +19,7 @@ function CreatePage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [step, setStep] = useState(0);
   const [occasion, setOccasion] = useState<OccasionId>("birthday");
+  const [theme, setTheme] = useState("boutique");
   const [recipient, setRecipient] = useState("");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
@@ -37,7 +39,7 @@ function CreatePage() {
 
   if (checkingAuth) return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading…</div>;
 
-  const steps = ["Occasion", "Details", "Media", "Review"];
+  const steps = ["Occasion", "Theme", "Details", "Media", "Review"];
 
   const handlePublish = async () => {
     setBusy(true);
@@ -45,14 +47,14 @@ function CreatePage() {
       const { id, slug } = await upsert({
         data: {
           occasion, recipient_name: recipient, title, message,
-          theme: "boutique",
+          theme,
           cover_image_url: coverUrl || null,
           photos: photoUrls.filter(Boolean).map((url) => ({ url })),
         },
       });
       await publish({ data: { id } });
       toast.success("Your surprise is live for 48 hours.");
-      navigate({ to: "/s/$slug", params: { slug } });
+      navigate({ to: "/preview/$id", params: { id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not publish");
     } finally {
@@ -65,7 +67,7 @@ function CreatePage() {
       <SiteNav />
       <div className="max-w-6xl mx-auto px-6 py-12 grid lg:grid-cols-[1fr,400px] gap-12">
         <div>
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-8 flex-wrap">
             {steps.map((s, i) => (
               <div key={s} className="flex items-center gap-3">
                 <div className={"size-8 rounded-full border flex items-center justify-center text-xs font-mono " +
@@ -97,6 +99,14 @@ function CreatePage() {
 
           {step === 1 && (
             <div>
+              <h1 className="font-display text-4xl mb-2">Choose a theme.</h1>
+              <p className="text-muted-foreground mb-8">The whole page reshapes around it — preview updates live.</p>
+              <ThemePicker value={theme} onChange={setTheme} />
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
               <h1 className="font-display text-4xl mb-2">Make it theirs.</h1>
               <p className="text-muted-foreground mb-8">A name, a title, a letter.</p>
               <div className="space-y-5">
@@ -112,7 +122,7 @@ function CreatePage() {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div>
               <h1 className="font-display text-4xl mb-2">Add the visuals.</h1>
               <p className="text-muted-foreground mb-8">Paste image URLs — hero + up to 6 gallery photos.</p>
@@ -128,7 +138,7 @@ function CreatePage() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div>
               <h1 className="font-display text-4xl mb-2">Ready to share?</h1>
               <p className="text-muted-foreground mb-8">
@@ -136,6 +146,7 @@ function CreatePage() {
               </p>
               <div className="p-6 rounded-2xl border border-border bg-card space-y-2">
                 <Row k="Occasion" v={OCCASIONS.find(o => o.id === occasion)?.label ?? ""} />
+                <Row k="Theme" v={theme} />
                 <Row k="Recipient" v={recipient || "—"} />
                 <Row k="Letter" v={`${message.length} characters`} />
                 <Row k="Photos" v={String(photoUrls.filter(Boolean).length)} />
@@ -148,7 +159,7 @@ function CreatePage() {
               className="px-6 py-3 rounded-full border border-border font-medium disabled:opacity-40">
               Back
             </button>
-            {step < 3 ? (
+            {step < steps.length - 1 ? (
               <button onClick={() => setStep(step + 1)}
                 className="px-8 py-3 rounded-full bg-foreground text-background font-medium">
                 Continue
@@ -169,6 +180,7 @@ function CreatePage() {
             recipient_name={recipient}
             cover_image_url={coverUrl || null}
             expires_at={new Date(Date.now() + 48 * 3600 * 1000).toISOString()}
+            themeId={theme}
           />
           <Link to="/dashboard" className="block text-center text-xs text-muted-foreground mt-6 hover:text-primary">
             Save & continue later
