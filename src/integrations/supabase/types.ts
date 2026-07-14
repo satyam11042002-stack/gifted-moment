@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      guestbook_entries: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message: string
+          name: string
+          surprise_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message?: string
+          name?: string
+          surprise_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message?: string
+          name?: string
+          surprise_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guestbook_entries_surprise_id_fkey"
+            columns: ["surprise_id"]
+            isOneToOne: false
+            referencedRelation: "surprises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       surprise_photos: {
         Row: {
           caption: string | null
