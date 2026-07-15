@@ -86,51 +86,66 @@ export type Database = {
       }
       surprises: {
         Row: {
+          autoplay: boolean
           cover_image_url: string | null
           created_at: string
+          event_at: string | null
           expires_at: string | null
           id: string
           is_published: boolean
           message: string
+          music_label: string | null
           music_url: string | null
           occasion: string
           opened_at: string | null
           owner_id: string
+          publish_at: string | null
           recipient_name: string
+          sender_name: string
           slug: string
           theme: string
           title: string
           updated_at: string
         }
         Insert: {
+          autoplay?: boolean
           cover_image_url?: string | null
           created_at?: string
+          event_at?: string | null
           expires_at?: string | null
           id?: string
           is_published?: boolean
           message?: string
+          music_label?: string | null
           music_url?: string | null
           occasion?: string
           opened_at?: string | null
           owner_id: string
+          publish_at?: string | null
           recipient_name?: string
+          sender_name?: string
           slug: string
           theme?: string
           title?: string
           updated_at?: string
         }
         Update: {
+          autoplay?: boolean
           cover_image_url?: string | null
           created_at?: string
+          event_at?: string | null
           expires_at?: string | null
           id?: string
           is_published?: boolean
           message?: string
+          music_label?: string | null
           music_url?: string | null
           occasion?: string
           opened_at?: string | null
           owner_id?: string
+          publish_at?: string | null
           recipient_name?: string
+          sender_name?: string
           slug?: string
           theme?: string
           title?: string
