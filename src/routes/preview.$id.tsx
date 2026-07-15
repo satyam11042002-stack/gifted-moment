@@ -96,7 +96,12 @@ function Preview() {
             </div>
           )}
 
-          {surprise.is_published && surprise.expires_at && (
+          {surprise.is_published && surprise.publish_at && new Date(surprise.publish_at).getTime() > Date.now() && (
+            <p className="mt-4 text-xs text-primary font-mono">
+              Scheduled — goes live in <CountdownInline expiresAt={surprise.publish_at} />
+            </p>
+          )}
+          {surprise.is_published && surprise.expires_at && (!surprise.publish_at || new Date(surprise.publish_at).getTime() <= Date.now()) && (
             <p className="mt-4 text-xs text-muted-foreground font-mono">
               Expires in <CountdownInline expiresAt={surprise.expires_at} />
             </p>
