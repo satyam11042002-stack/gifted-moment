@@ -9,15 +9,24 @@ const upsertSchema = z.object({
   id: z.string().uuid().optional(),
   occasion: z.string().min(1).max(40),
   recipient_name: z.string().max(120).default(""),
-  title: z.string().max(200).default(""),
+  sender_name: z.string().max(120).default(""),
+  title: z.string().max(200).default(""), // headline
   message: z.string().max(4000).default(""),
   theme: z.string().max(40).default("boutique"),
   cover_image_url: z.string().url().nullable().optional(),
   music_url: z.string().url().nullable().optional(),
-  photos: z.array(z.object({
-    url: z.string().url(),
-    caption: z.string().max(200).optional(),
-  })).max(20).default([]),
+  music_label: z.string().max(120).nullable().optional(),
+  autoplay: z.boolean().optional().default(false),
+  event_at: z.string().datetime().nullable().optional(),
+  photos: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        caption: z.string().max(200).optional(),
+      }),
+    )
+    .max(10)
+    .default([]),
 });
 
 export const upsertSurprise = createServerFn({ method: "POST" })
@@ -68,18 +77,25 @@ export const upsertSurprise = createServerFn({ method: "POST" })
     return { id: full.id, slug: full.slug };
   });
 
+const publishSchema = z.object({
+  id: z.string().uuid(),
+  publish_at: z.string().datetime().nullable().optional(),
+});
+
 export const publishSurprise = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => publishSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const expires_at = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
+    const startMs = data.publish_at ? new Date(data.publish_at).getTime() : Date.now();
+    const expires_at = new Date(startMs + 48 * 3600 * 1000).toISOString();
+    const publish_at = data.publish_at ?? null;
     const { error } = await context.supabase
       .from("surprises")
-      .update({ is_published: true, expires_at })
+      .update({ is_published: true, publish_at, expires_at })
       .eq("id", data.id)
       .eq("owner_id", context.userId);
     if (error) throw new Error(error.message);
-    return { ok: true, expires_at };
+    return { ok: true, expires_at, publish_at };
   });
 
 export const deleteSurprise = createServerFn({ method: "POST" })
@@ -100,7 +116,9 @@ export const listMySurprises = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("surprises")
-      .select("id, slug, occasion, recipient_name, title, cover_image_url, is_published, expires_at, created_at")
+      .select(
+        "id, slug, occasion, recipient_name, sender_name, title, cover_image_url, is_published, publish_at, expires_at, event_at, created_at",
+      )
       .eq("owner_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
