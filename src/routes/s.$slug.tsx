@@ -1,14 +1,19 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getSurpriseBySlug } from "@/lib/surprises-public.functions";
 import { RevealEnvelope } from "@/components/momently/RevealEnvelope";
 import { CountdownRing } from "@/components/momently/CountdownRing";
 import { ThemedShell } from "@/components/momently/ThemedShell";
 import { Guestbook } from "@/components/momently/Guestbook";
-import { occasionGreeting, occasionLabel, formatCountdown } from "@/lib/momently";
+import { CinematicLoader } from "@/components/momently/CinematicLoader";
+import { HeroCover } from "@/components/momently/HeroCover";
+import { FloatingMusic } from "@/components/momently/FloatingMusic";
+import { PhotoGallery } from "@/components/momently/PhotoGallery";
+import { LetterReveal } from "@/components/momently/LetterReveal";
+import { EndingCelebration } from "@/components/momently/EndingCelebration";
+import { occasionGreeting, formatCountdown } from "@/lib/momently";
 import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
-import { Volume2, VolumeX } from "lucide-react";
+import { motion, useScroll, useSpring } from "framer-motion";
 
 export const Route = createFileRoute("/s/$slug")({
   loader: async ({ params }) => {
@@ -50,6 +55,7 @@ export const Route = createFileRoute("/s/$slug")({
 function SurprisePage() {
   const s = Route.useLoaderData();
   const [opened, setOpened] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const expired = s.expires_at ? new Date(s.expires_at).getTime() <= Date.now() : false;
   const scheduled = s.publish_at ? new Date(s.publish_at).getTime() > Date.now() : false;
@@ -59,6 +65,13 @@ function SurprisePage() {
       if (data.user?.id && data.user.id === s.owner_id) setIsOwner(true);
     });
   }, [s.owner_id]);
+
+  // Preload cover for smooth hero
+  useEffect(() => {
+    if (!s.cover_image_url) return;
+    const img = new Image();
+    img.src = s.cover_image_url;
+  }, [s.cover_image_url]);
 
   if (expired) {
     return (
@@ -92,75 +105,35 @@ function SurprisePage() {
 
   return (
     <ThemedShell themeId={s.theme}>
-      {s.music_url && <MusicPlayer url={s.music_url} label={s.music_label} autoplay={!!s.autoplay} />}
-
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 py-24 text-center overflow-hidden">
-        {s.cover_image_url && (
-          <div className="absolute inset-0 opacity-30">
-            <img
-              src={s.cover_image_url}
-              alt=""
-              loading="eager"
-              decoding="async"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, var(--background) 0%, transparent 40%, var(--background) 100%)", opacity: 0.7 }} />
-          </div>
-        )}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="relative max-w-3xl"
-        >
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary mb-6">
-            {occasionLabel(s.occasion)} · {occasionGreeting(s.occasion)}
-          </p>
-          <h1 className="font-display italic text-6xl md:text-8xl leading-[0.9] mb-8" style={{ fontFamily: "var(--font-display)" }}>
-            {s.recipient_name || "You"}
-          </h1>
-          {s.title && <p className="text-xl text-muted-foreground max-w-xl mx-auto text-pretty">{s.title}</p>}
-        </motion.div>
-      </section>
-
-      {s.message && (
-        <motion.section
-          initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="px-6 py-24 max-w-2xl mx-auto"
-        >
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary mb-8 text-center">A letter</p>
-          <p className="font-display italic text-2xl md:text-3xl leading-relaxed whitespace-pre-wrap text-center text-balance" style={{ fontFamily: "var(--font-display)" }}>
-            {s.message}
-          </p>
-          {s.sender_name && (
-            <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground text-center">
-              — {s.sender_name}
-            </p>
-          )}
-        </motion.section>
+      {loading && (
+        <CinematicLoader
+          recipientName={s.recipient_name}
+          onDone={() => setLoading(false)}
+        />
       )}
 
+      <ReadingProgress />
+
+      {s.music_url && (
+        <FloatingMusic
+          url={s.music_url}
+          label={s.music_label}
+          autoplay={!!s.autoplay}
+          surpriseId={s.id}
+        />
+      )}
+
+      <HeroCover
+        coverUrl={s.cover_image_url}
+        recipientName={s.recipient_name}
+        occasion={s.occasion}
+        title={s.title}
+      />
+
+      {s.message && <LetterReveal message={s.message} senderName={s.sender_name} />}
+
       {s.surprise_photos && s.surprise_photos.length > 0 && (
-        <section className="px-6 py-24 max-w-5xl mx-auto">
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary mb-8 text-center">Moments</p>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {s.surprise_photos.map((p: { url: string; caption: string | null }, i: number) => (
-              <motion.div key={i}
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.6, delay: (i % 6) * 0.05 }}
-                className="aspect-[4/5] rounded-2xl overflow-hidden bg-accent"
-              >
-                <img
-                  src={p.url}
-                  alt={p.caption ?? ""}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-              </motion.div>
-            ))}
-          </div>
-        </section>
+        <PhotoGallery photos={s.surprise_photos} />
       )}
 
       <Guestbook surpriseId={s.id} isOwner={isOwner} />
@@ -179,47 +152,20 @@ function SurprisePage() {
         </div>
       </section>
 
-      <footer className="py-8 text-center">
-        <a href="/" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-primary">
-          Made with Momently
-        </a>
-      </footer>
+      <EndingCelebration senderName={s.sender_name} />
     </ThemedShell>
   );
 }
 
-function MusicPlayer({ url, label, autoplay }: { url: string; label: string | null; autoplay: boolean }) {
-  const ref = useRef<HTMLAudioElement | null>(null);
-  const [muted, setMuted] = useState(true); // start muted; toggling unmutes and plays
-
-  useEffect(() => {
-    if (!autoplay || !ref.current) return;
-    // Attempt muted autoplay (allowed by most browsers), user can unmute.
-    ref.current.muted = true;
-    ref.current.play().catch(() => {});
-  }, [autoplay]);
-
-  const toggle = () => {
-    if (!ref.current) return;
-    const next = !muted;
-    setMuted(next);
-    ref.current.muted = next;
-    if (!next) ref.current.play().catch(() => {});
-  };
-
+function ReadingProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.3 });
   return (
-    <>
-      <audio ref={ref} src={url} loop preload="auto" />
-      <button
-        type="button"
-        onClick={toggle}
-        className="fixed top-4 right-4 z-40 rounded-full bg-background/80 backdrop-blur border border-border p-3 shadow-lg hover:bg-background"
-        aria-label={muted ? `Play music${label ? ` — ${label}` : ""}` : "Mute music"}
-        title={label ?? undefined}
-      >
-        {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-      </button>
-    </>
+    <motion.div
+      aria-hidden
+      className="fixed left-0 right-0 top-0 z-[55] h-[2px] origin-left"
+      style={{ scaleX, background: "color-mix(in oklab, var(--primary) 90%, transparent)" }}
+    />
   );
 }
 
